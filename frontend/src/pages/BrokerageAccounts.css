@@ -1,0 +1,125 @@
+/* General Container Styling */
+.brokerage-container {
+  max-width: 1000px; /* Increased width for desktop */
+  margin: 50px auto;
+  background-color: #1e1e2f; /* Dark theme */
+  padding: 30px; /* Increased padding */
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  color: #ffffff;
+}
+
+/* Title Styling */
+.title {
+  font-size: 28px; /* Larger font for better readability */
+  font-weight: bold;
+  margin-bottom: 25px;
+}
+
+/* Account List */
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Increased gap */
+  margin-bottom: 25px;
+}
+
+.account-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2a2a3d;
+  padding: 15px 20px; /* Larger padding */
+  border-radius: 10px;
+  font-size: 20px; /* Larger text */
+}
+
+/* Unlink Button */
+.unlink-button {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 10px 15px; /* Bigger button */
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: background 0.3s ease-in-out;
+}
+
+.unlink-button:hover {
+  background-color: #e63e3e;
+}
+
+/* Input Section */
+.input-section {
+  margin-top: 30px; /* More space */
+  display: flex;
+  justify-content: center;
+  gap: 15px; /* Increased gap */
+}
+
+.account-input {
+  width: 70%;
+  padding: 12px; /* Larger input */
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a3d;
+  color: white;
+  font-size: 18px;
+}
+
+.link-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 20px; /* Bigger button */
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 18px;
+  transition: background 0.3s ease-in-out;
+}
+
+.link-button:hover {
+  background-color: #0056b3;
+}
+
+/* Back to Dashboard Button */
+.button-container {
+  margin-top: 30px; /* More space */
+}
+
+.back-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 20px; /* Bigger button */
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 18px;
+  transition: background 0.3s ease-in-out;
+}
+
+.back-button:hover {
+  background-color: #388e3c;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .brokerage-container {
+    width: 90%;
+    padding: 20px;
+  }
+
+  .account-input {
+    width: 100%;
+  }
+
+  .input-section {
+    flex-direction: column;
+  }
+
+  .link-button {
+    width: 100%;
+  }
+}

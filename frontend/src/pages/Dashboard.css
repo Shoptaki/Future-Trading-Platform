@@ -1,0 +1,86 @@
+.dashboard-container {
+  max-width: 900px; /* Increased width for desktop */
+  margin: 40px auto;
+  padding: 30px;
+  background: #1e1e1e;
+  color: white;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-header h1 {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.dashboard-header p {
+  font-size: 18px;
+  color: #aaa;
+}
+
+.profile-section {
+  margin: 25px 0;
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.profile-section p {
+  margin: 8px 0;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+  flex-wrap: wrap; /* Ensures proper alignment on smaller screens */
+}
+
+.dashboard-button {
+  background: #ff9800;
+  color: white;
+  padding: 16px 24px; /* Bigger buttons */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  min-width: 220px; /* Ensures a consistent button size */
+  transition: all 0.3s ease-in-out;
+}
+
+.dashboard-button:hover {
+  transform: translateY(-2px);
+  opacity: 0.85;
+}
+
+.edit-profile {
+  background: #2196f3;
+}
+
+.manage-accounts {
+  background: #4caf50;
+}
+
+.logout {
+  background: #d32f2f;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    max-width: 90%;
+    padding: 20px;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dashboard-button {
+    width: 100%; /* Full width buttons for smaller screens */
+  }
+}
