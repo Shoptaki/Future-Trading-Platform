@@ -104,7 +104,11 @@ def login(username: str = Form(...), password: str = Form(...), db: Session = De
         {"sub": username}, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    return {"access_token": access_token}
+    return {
+        "access_token": access_token,
+        "user_id": user.id  # 🔹 Include user_id in the response
+    }
+
 
 # Token Verification
 def verify_token(token: str = Depends(oauth2_scheme)):

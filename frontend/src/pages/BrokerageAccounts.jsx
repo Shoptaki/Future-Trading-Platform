@@ -7,41 +7,52 @@ import "./BrokerageAccounts.css";
 export default function BrokerageAccounts() {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
-  const [newAccount, setNewAccount] = useState("");
-  const [loading, setLoading] = useState(true);  // 🔹 Add loading state
+  const [broker, setBroker] = useState("");  // 🔹 Changed from newAccount to broker
+  const [accountNumber, setAccountNumber] = useState("");
+  const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
+  const userId = localStorage.getItem("userId"); 
 
+  
   useEffect(() => {
-    if (!token) {
+    if (!token || !userId) {
       navigate("/login");
       return;
     }
-
+  
     axios
-      .get("http://127.0.0.1:8000/brokerage-accounts", {
+      .get(`http://127.0.0.1:8000/brokerage-accounts/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((response) => {
-        setAccounts(response.data);
+      .then((response) => setAccounts(response.data))
+      .catch((error) => {
+        console.error("Error fetching accounts:", error);
+        if (error.response && error.response.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
       })
-      .catch((error) => console.error("Error fetching accounts:", error))
-      .finally(() => setLoading(false)); // 🔹 Set loading to false after API call
-  }, [navigate, token]);
+      .finally(() => setLoading(false));
+  }, [navigate, token, userId]);
+  
 
   const handleLinkAccount = () => {
-    if (!newAccount) return;
+    if (!broker || !accountNumber) return;
+  
     axios
       .post(
         "http://127.0.0.1:8000/brokerage-accounts",
-        { account_name: newAccount },
+        { user_id: parseInt(userId), broker, account_number: accountNumber },  // 🔹 Added user_id
         { headers: { Authorization: `Bearer ${token}` } }
       )
       .then((response) => {
-        setAccounts([...accounts, response.data]);
-        setNewAccount("");
+        setAccounts([...accounts, response.data.account]);
+        setBroker("");
+        setAccountNumber("");
       })
       .catch((error) => console.error("Error linking account:", error));
   };
+  
 
   const handleUnlinkAccount = (accountId) => {
     axios
@@ -57,25 +68,34 @@ export default function BrokerageAccounts() {
       <h2 className="title">Manage Linked Brokerage Accounts</h2>
 
       {loading ? (
-        <p>Loading accounts...</p>  // 🔹 Show loading message
+        <p>Loading accounts...</p>
       ) : accounts.length > 0 ? (
         <div className="account-list">
           {accounts.map((account) => (
             <div key={account.id} className="account-item">
-              <span>{account.account_name}</span>
+              <span>{account.broker} - {account.account_number}</span>  {/* 🔹 Display both fields */}
               <button className="unlink-button" onClick={() => handleUnlinkAccount(account.id)}>Unlink</button>
             </div>
           ))}
         </div>
-      ) : null} {/* 🔹 If no accounts, don't display anything */}
+      ) : (
+        <p>No linked accounts yet.</p>  // 🔹 Show a message instead of empty space
+      )}
 
       <div className="input-section">
         <input
           type="text"
           className="account-input"
-          placeholder="Enter new brokerage account"
-          value={newAccount}
-          onChange={(e) => setNewAccount(e.target.value)}
+          placeholder="Broker Name (e.g., IBKR, Tradeovate)"
+          value={broker}
+          onChange={(e) => setBroker(e.target.value)}
+        />
+        <input
+          type="text"
+          className="account-input"
+          placeholder="Account Number"
+          value={accountNumber}
+          onChange={(e) => setAccountNumber(e.target.value)}
         />
         <button className="link-button" onClick={handleLinkAccount}>Link Account</button>
       </div>

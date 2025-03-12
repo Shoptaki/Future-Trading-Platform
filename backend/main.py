@@ -5,7 +5,7 @@ import json
 import math
 
 from backend.auth import router as auth_router, verify_token  # ✅ Import Authentication Router
-from backend.broker.ibkr import fetch_market_data  # ✅ Ensure import path is correct
+from backend.broker import brokerage_accounts
 
 from .database import init_db
 
@@ -68,3 +68,5 @@ async def get_market_data(symbol: str):
 
     except Exception as e:
         return {"error": str(e)}
+
+app.include_router(brokerage_accounts.router)

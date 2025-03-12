@@ -15,23 +15,24 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-
+  
     try {
       const formData = new FormData();
       formData.append("username", username);
       formData.append("password", password);
-
+  
       const response = await axios.post(
         "http://127.0.0.1:8000/auth/login",
         formData,
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } } // Ensure correct content type
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
       );
-
-      console.log("🔹 Response from Backend:", response.data);
-
-      if (response.data.access_token) {
-        localStorage.setItem("token", response.data.access_token); // Store token
-        navigate("/dashboard"); // Redirect after login
+  
+      console.log("🔹 Response from Backend:", response.data); // Debugging
+  
+      if (response.data.access_token && response.data.user_id) {
+        localStorage.setItem("token", response.data.access_token);
+        localStorage.setItem("userId", response.data.user_id); // 🔹 Store userId
+        navigate("/dashboard");
       } else {
         setError("Invalid login credentials");
       }
@@ -40,6 +41,7 @@ export default function Login() {
       setError(error.response?.data?.detail || "Login failed");
     }
   };
+  
   
   
 
