@@ -1,6 +1,6 @@
-import backend.asset_logic.future_utils as future_utils
-import Order
-from backend.asset_logic.future_utils import get_current_price
+import future_utils
+from Order import Order
+from future_utils import get_current_price
 import pandas as pd
 
 
@@ -44,7 +44,7 @@ class Portfolio:
 
     """
 
-    def __init__(self, cash_balance=0):
+    def __init__(self, cash_balance: float = 0):
 
         self.cash_balance = cash_balance
         self.margins = {"Futures": 0.15}
@@ -60,7 +60,7 @@ class Portfolio:
                 "Amount",
                 "AvgCost",
                 "CurrentValue",
-                "MarginValue",
+                "ValueOnMargin",
                 "P/L",
             ]
         )
@@ -125,10 +125,6 @@ class Portfolio:
 
         self.update_portfolio_value()
 
-    def deposit_cash(self, amount):
-        self.cash_balance += amount
-        self.update_portfolio_value()
-
     def settle_order(self, order: Order):
         self.update_positions(order)
         pass
@@ -136,15 +132,37 @@ class Portfolio:
     def update_pending_balance(self):
         self.pending_balance = sum(
             [
-                order.get_order_cost() * self.margin["Futures"]
+                order.get_order_cost() * self.margins["Futures"]
                 for order in self.open_orders
             ]
         )  # Sums the costs * margin of open orders
 
-    def update_positions(self, order: Order):
+    def add_order_to_postions(self, order: Order):
         """Given a cleared order to update self.positions dataframe.
 
         Args:
             order (Order): Cleared order to update positions.
         """
+        if order.get_symbol() in self.positions["Symbol"]:
+            trade = self.positions[self.positions["Symbol"] == order.get_symbol()]
+
         pass
+
+    def update_all_positions(self):
+        pass
+
+    def deposit_cash(self, amount):
+        self.cash_balance += amount
+        self.update_portfolio_value()
+
+    def set_margins(self, asset, margin):
+        self.margins[asset] = margin
+
+    def get_margins(self, asset):
+        return self.margins[asset]
+
+    def get_cash_balance(self):
+        return self.cash_balance
+
+    def get_open_orders(self):
+        return self.open_orders
