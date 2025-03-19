@@ -1,4 +1,5 @@
 import future_utils
+from future_utils import get_current_price
 
 
 class Order:
@@ -16,9 +17,29 @@ class Order:
         self.limit_price = limit_price
         self.place_order()
         self.status = "open"
+        self.price_at_trade = None
+        self.place_order()
 
     def place_order(self):
-        pass
+
+        # For market orders
+        if self.limit_price is None:
+            self.limit_price = future_utils.get_current_price(self.symbol)
+
+        # For buying/long orders
+        else:
+            if self.amount > 0:
+                if get_current_price(self.symbol) <= self.limit_price:
+                    self.status = "filled"
+                    self.price_at_trade = get_current_price(self.symbol)
+                    # TODO Place order in database/actually place order
+
+                # For selling/short orders
+                else:
+                    if get_current_price(self.symbol) >= self.limit_price:
+                        self.status = "filled"
+                        self.price_at_trade = get_current_price(self.symbol)
+                        # TODO Place order in database/actually place order
 
     def get_status(self):
         pass
@@ -39,7 +60,7 @@ class Order:
         return self.symbol
 
     def get_price_at_trade(self):
-        return self.limit_price
+        return self.price_at_trade
 
     def get_order_amount(self):
         return self.amount

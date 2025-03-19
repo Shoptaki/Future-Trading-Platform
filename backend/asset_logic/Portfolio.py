@@ -53,6 +53,7 @@ class Portfolio:
 
         self.pending_balance = 0
         self.portfolio_value = cash_balance
+        self.order_history = []
 
         self.positions = pd.DataFrame(
             columns=[
@@ -126,8 +127,8 @@ class Portfolio:
         self.update_portfolio_value()
 
     def settle_order(self, order: Order):
-        self.update_positions(order)
-        pass
+        self.order_history.append(order)
+        self.add_order_to_postions(order)
 
     def update_pending_balance(self):
         self.pending_balance = sum(
@@ -137,6 +138,7 @@ class Portfolio:
             ]
         )  # Sums the costs * margin of open orders
 
+    #
     def add_order_to_postions(self, order: Order):
         """Given a cleared order to update self.positions dataframe.
 
@@ -145,11 +147,51 @@ class Portfolio:
         """
         if order.get_symbol() in self.positions["Symbol"]:
             trade = self.positions[self.positions["Symbol"] == order.get_symbol()]
-
-        pass
+            newAvgCost = (
+                trade["AvgCost"] * trade["Amount"] + order.get_order_cost()
+            ) / (trade["Amount"] + order.get_amount())
+            trade["AvgCost"] = newAvgCost
+            trade["Amount"] += order.get_amount()
+            trade["CurrentValue"] = get_current_price(order.get_symbol())
+            trade["ValueOnMargin"] = (
+                trade["Amount"] * trade["CurrentValue"] * self.margins["Futures"]
+            )
+            trade["P/L"] = (
+                trade["Amount"] * trade["CurrentValue"] - trade["Amount"] * newAvgCost
+            )
+        else:
+            self.positions = self.positions.append(
+                {
+                    "Symbol": order.get_symbol(),
+                    "Amount": order.get_amount(),
+                    "AvgCost": order.get_order_cost(),
+                    "CurrentValue": get_current_price(order.get_symbol()),
+                    "ValueOnMargin": order.get_order_cost() * self.margins["Futures"],
+                    "P/L": 0,
+                },
+                ignore_index=True,
+            )
 
     def update_all_positions(self):
-        pass
+        """Updates the current value of all positions in the portfolio. Speicifcally updates
+        the current value of the position, the value of the position on margin, and the
+        profit/loss of the position.
+        """
+        for position in self.positions.iterrows():
+            position["CurrentValue"] = get_current_price(position["Symbol"])
+            position["ValueOnMargin"] = (
+                position["Amount"] * position["CurrentValue"] * self.margins["Futures"]
+            )
+            position["P/L"] = (
+                position["Amount"] * position["CurrentValue"]
+                - position["Amount"] * position["AvgCost"]
+            )
+
+    def clear_filled_orders(self):
+        for order in self.open_orders:
+            if order.get_status() == "filled":
+                self.open_orders.remove(order)
+                self.settle_order(order)
 
     def deposit_cash(self, amount):
         self.cash_balance += amount
@@ -166,3 +208,12 @@ class Portfolio:
 
     def get_open_orders(self):
         return self.open_orders
+
+    def get_pending_balance(self):
+        return self.pending_balance
+
+    def get_order_history(self):
+        return self.order_history
+
+    def get_positions_df(self):
+        return self.positions

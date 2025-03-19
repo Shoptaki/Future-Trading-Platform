@@ -7,10 +7,12 @@ symbol (str): Symbol for specific future contract.
 
 """
 
+import random
+
 
 # TODO
 def get_current_price(symbol):
-    pass
+    return random.randint(10000, 20000) / 100
 
 
 def get_expiration_year(symbol):
