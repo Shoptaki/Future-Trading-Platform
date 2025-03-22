@@ -2,6 +2,7 @@ import future_utils
 from Order import Order
 from future_utils import get_current_price
 import pandas as pd
+import numpy as np
 
 
 class Portfolio:
@@ -24,23 +25,17 @@ class Portfolio:
         get_portfolio_value():
             Returns the total portfolio value.
 
-        update_portfolio_value():
-            Updates the portfolio's total value based on current prices.
-
         withdraw_cash(amount):
             Withdraws cash from the portfolio.
 
         deposit_cash(amount):
             Deposits cash into the portfolio.
 
-        settle_order(order):
-            Settles an executed order by updating positions and cash balance.
-
         update_pending_balance():
             Updates the pending balance, which accounts for margin requirements of open orders.
 
-        update_positions(order):
-            Updates the portfolio's open positions based on executed orders.
+        update_all_positions(order):
+            Updates the portfolio's open positions based on executed orders and current prices.
 
     """
 
@@ -56,14 +51,16 @@ class Portfolio:
         self.order_history = []
 
         self.positions = pd.DataFrame(
-            columns=[
-                "Symbol",
-                "Amount",
-                "AvgCost",
-                "CurrentValue",
-                "ValueOnMargin",
-                "P/L",
-            ]
+            {
+                "Symbol": pd.Series(dtype="str"),
+                "Amount": pd.Series(dtype="float"),
+                "AvgCost": pd.Series(dtype="float"),
+                "TotalCost": pd.Series(dtype="float"),
+                "CurrentPrice": pd.Series(dtype="float"),
+                "ValueOnMargin": pd.Series(dtype="float"),
+                "TotalValue": pd.Series(dtype="float"),
+                "P/L": pd.Series(dtype="float"),
+            }
         )
 
     def place_order(self, symbol: str, amount: int, limit_price=None):
@@ -97,8 +94,8 @@ class Portfolio:
 
         # Sell Orders (Including Shorting)
         else:
-            if symbol in self.futures:
-                final_amount = self.future[symbol] + amount
+            if symbol in self.positions:
+                final_amount = self.positions[symbol] + amount
             else:
                 final_amount = amount
 
@@ -113,22 +110,12 @@ class Portfolio:
             self.update_pending_balance()
 
     def get_portfolio_value(self):
+        # TODO
         pass
 
-    def update_portfolio_value(self):
+    def calculate_risk(self):
+        # TODO
         pass
-
-    def withdraw_cash(self, amount):
-        if self.cash_balance >= amount:
-            self.cash_balance -= amount
-        else:
-            raise Exception(f"Not enough cash to withdraw {amount}")
-
-        self.update_portfolio_value()
-
-    def settle_order(self, order: Order):
-        self.order_history.append(order)
-        self.add_order_to_postions(order)
 
     def update_pending_balance(self):
         self.pending_balance = sum(
@@ -138,64 +125,126 @@ class Portfolio:
             ]
         )  # Sums the costs * margin of open orders
 
-    #
     def add_order_to_postions(self, order: Order):
         """Given a cleared order to update self.positions dataframe.
 
         Args:
             order (Order): Cleared order to update positions.
         """
-        if order.get_symbol() in self.positions["Symbol"]:
-            trade = self.positions[self.positions["Symbol"] == order.get_symbol()]
+
+        if (self.positions["Symbol"] == order.get_symbol()).any():
+            # Checks if position is already in portfolio
+
+            cur_position = self.positions[  # initializes current position
+                self.positions["Symbol"] == order.get_symbol()
+            ].copy()
+
+            new_position = (
+                cur_position.copy()
+            )  # new position to be updated in self.positions dataframe
+
             newAvgCost = (
-                trade["AvgCost"] * trade["Amount"] + order.get_order_cost()
-            ) / (trade["Amount"] + order.get_amount())
-            trade["AvgCost"] = newAvgCost
-            trade["Amount"] += order.get_amount()
-            trade["CurrentValue"] = get_current_price(order.get_symbol())
-            trade["ValueOnMargin"] = (
-                trade["Amount"] * trade["CurrentValue"] * self.margins["Futures"]
+                cur_position["AvgCost"] * cur_position["Amount"]
+                + order.get_order_cost()
+            ) / (cur_position["Amount"] + order.get_amount())
+            # Calculates the new average cost of the position
+
+            new_position["Amount"] = cur_position["Amount"] + order.get_amount()
+            new_position["AvgCost"] = newAvgCost
+            new_position["TotalCost"] = newAvgCost * (
+                cur_position["Amount"] + order.get_amount()
             )
-            trade["P/L"] = (
-                trade["Amount"] * trade["CurrentValue"] - trade["Amount"] * newAvgCost
+
+            new_position["CurrentPrice"] = get_current_price(order.get_symbol())
+            new_position["TotalValue"] = (
+                new_position["Amount"] * new_position["CurrentPrice"]
             )
+
+            new_position["ValueOnMargin"] = (
+                cur_position["Amount"]
+                * cur_position["CurrentPrice"]
+                * self.margins["Futures"]
+            )
+            # Calculates value of the position on margin
+
+            new_position["P/L"] = new_position["TotalCost"] - new_position["TotalValue"]
+
         else:
-            self.positions = self.positions.append(
+
+            new_row = pd.DataFrame(
                 {
-                    "Symbol": order.get_symbol(),
-                    "Amount": order.get_amount(),
-                    "AvgCost": order.get_order_cost(),
-                    "CurrentValue": get_current_price(order.get_symbol()),
-                    "ValueOnMargin": order.get_order_cost() * self.margins["Futures"],
-                    "P/L": 0,
-                },
-                ignore_index=True,
+                    "Symbol": [order.get_symbol()],
+                    "Amount": [float(order.get_amount())],
+                    "AvgCost": [float(order.get_order_cost() / order.get_amount())],
+                    "TotalCost": [float(order.get_order_cost())],
+                    "CurrentPrice": [float(get_current_price(order.get_symbol()))],
+                    "ValueOnMargin": [
+                        float(order.get_order_cost() * self.margins["Futures"])
+                    ],
+                    "TotalValue": [float(order.get_order_cost())],
+                    "P/L": [float(0)],
+                }
             )
+
+            self.positions = pd.concat([self.positions, new_row], ignore_index=False)
 
     def update_all_positions(self):
         """Updates the current value of all positions in the portfolio. Speicifcally updates
         the current value of the position, the value of the position on margin, and the
         profit/loss of the position.
         """
-        for position in self.positions.iterrows():
-            position["CurrentValue"] = get_current_price(position["Symbol"])
-            position["ValueOnMargin"] = (
-                position["Amount"] * position["CurrentValue"] * self.margins["Futures"]
-            )
-            position["P/L"] = (
-                position["Amount"] * position["CurrentValue"]
-                - position["Amount"] * position["AvgCost"]
-            )
+        self.positions = self.positions.reset_index()
+        for ind, position in self.positions.iterrows():
+            current_price = get_current_price(position["Symbol"])
 
-    def clear_filled_orders(self):
+            total_value = position["Amount"] * current_price
+            value_on_margin = total_value * self.margins["Futures"]
+
+            pnl = total_value - position["TotalCost"]
+            print(position["Symbol"], total_value)
+
+            print(self.positions.loc[ind])
+            # print(position["Symbol"], total_value, position["TotalCost"], pnl)
+            self.positions.at[ind, "CurrentPrice"] = current_price
+            self.positions.at[ind, "TotalValue"] = total_value
+            self.positions.at[ind, "ValueOnMargin"] = value_on_margin
+            self.positions.at[ind, "P/L"] = pnl
+
+            print("New Values")
+            print(self.positions.loc[ind])
+            print("\n")
+
+    def clear_orders(self):
+        """Checks if orders are filled and removes them."""
         for order in self.open_orders:
-            if order.get_status() == "filled":
+            if order.get_status() == 0:
+                # Open order
+                continue
+            elif order.get_status() == 1:
+                # Filled order
+                self.order_history.append(order)
+                self.add_order_to_postions(order)
                 self.open_orders.remove(order)
-                self.settle_order(order)
+                self.cash_balance -= order.get_order_cost()
+
+            elif order.get_status() == 2:
+                # Cancelled order
+                self.open_orders.remove(order)
+            else:
+                raise Exception("Invalid Order Status")
 
     def deposit_cash(self, amount):
+        """Allows for depositing cash into account."""
         self.cash_balance += amount
-        self.update_portfolio_value()
+        self.update_all_positions()
+
+    def withdraw_cash(self, amount):
+        if self.cash_balance >= amount:
+            self.cash_balance -= amount
+        else:
+            raise Exception(f"Not enough cash to withdraw {amount}")
+
+        self.update_all_positions()
 
     def set_margins(self, asset, margin):
         self.margins[asset] = margin
@@ -216,4 +265,81 @@ class Portfolio:
         return self.order_history
 
     def get_positions_df(self):
+        self.update_all_positions()
         return self.positions
+
+    def check_position_validity(self):
+        """First updates the positions then checks if the positions in the portfolio are valid.
+        Specifically TotalValue, TotalCost, and P/L are checked. If the values are not equal, an exception is raised.
+        """
+        self.update_all_positions()
+
+        # Checks if the total value of the position is equal to the amount * current price
+        for ind, pos in self.positions.iterrows():
+            if not np.isclose(pos["Amount"] * pos["CurrentPrice"], pos["TotalValue"]):
+                print(pos)
+                raise Exception(
+                    f"Position Total Value Mismatch. {pos["Amount"] * pos["CurrentPrice"]} != {pos['TotalValue']}"
+                )
+        print("All Position Total Values Match")
+
+        # Checks if the total cost of the position is equal to the amount * avg cost
+        for ind, pos in self.positions.iterrows():
+            if not np.isclose(pos["Amount"] * pos["AvgCost"], pos["TotalCost"]):
+                raise Exception(
+                    f"Position Total Cost Mismatch. {pos['Amount'] * pos['AvgCost']} != {pos['TotalCost']}"
+                )
+        print("All Position Total Costs Match")
+
+        # Checks if the P/L of the position is equal to the amount * avg cost - total value
+        for ind, pos in self.positions.iterrows():
+            if not np.isclose(
+                pos["TotalValue"] - pos["TotalCost"],
+                pos["P/L"],
+            ):
+                raise Exception(
+                    f"Position P/L Mismatch. {pos["TotalValue"] - pos["TotalCost"]} != {pos['P/L']}"
+                )
+        print("All Position Values Match")
+
+    def print_positions(self):
+        """Prints the current positions in the portfolio in a table format."""
+        self.update_all_positions()
+
+        headers = self.positions.columns
+
+        # Convert and round values, then store rows
+        rows = []
+        for _, pos in self.positions.iterrows():
+            row = [
+                str(pos["Symbol"]),
+                f"{round(pos['Amount'], 2):.2f}",
+                f"{round(pos['AvgCost'], 2):.2f}",
+                f"{round(pos['TotalCost'], 2):.2f}",
+                f"{round(pos['CurrentPrice'], 2):.2f}",
+                f"{round(pos['TotalValue'], 2):.2f}",
+                f"{round(pos['ValueOnMargin'], 2):.2f}",
+                f"{round(pos['P/L'], 2):.2f}",
+            ]
+            rows.append(row)
+
+        # Determine column widths
+        col_widths = [
+            max(len(str(item)) for item in [header] + [row[i] for row in rows])
+            for i, header in enumerate(headers)
+        ]
+
+        # Format header
+        header_str = " | ".join(
+            header.ljust(col_widths[i]) for i, header in enumerate(headers)
+        )
+        divider = "-+-".join("-" * col_widths[i] for i in range(len(headers)))
+        print(header_str)
+        print(divider)
+
+        # Print each row
+        for row in rows:
+            row_str = " | ".join(
+                row[i].ljust(col_widths[i]) for i in range(len(headers))
+            )
+            print(row_str)

@@ -12,7 +12,16 @@ import random
 
 # TODO
 def get_current_price(symbol):
-    return random.randint(10000, 20000) / 100
+    """Returns the current price of a future contract as float
+
+    Args:
+        symbol (str): future symbol
+
+    Returns:
+        float: current price
+    """
+    # return float(250)
+    return random.randint(10000, 25000) / 100
 
 
 def get_expiration_year(symbol):
