@@ -32,14 +32,14 @@ class Order:
                 if get_current_price(self.symbol) <= self.limit_price:
                     self.status = "filled"
                     self.price_at_trade = get_current_price(self.symbol)
-                    # TODO Place order in database/actually place order
+                    # TODO Place order in database and actually place order
 
                 # For selling/short orders
                 else:
                     if get_current_price(self.symbol) >= self.limit_price:
                         self.status = "filled"
                         self.price_at_trade = get_current_price(self.symbol)
-                        # TODO Place order in database/actually place order
+                        # TODO Place order in database and actually place order
 
     def get_status(self):
         pass
