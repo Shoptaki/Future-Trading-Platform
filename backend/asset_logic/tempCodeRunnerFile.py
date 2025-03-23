@@ -5,23 +5,19 @@ import random
 
 myPortfolio = Portfolio(1000000)
 
-myPortfolio.place_order(symbol="ESZ24", amount=10, limit_price=200)
-# print("open orders: ", myPortfolio.get_open_orders())
-
-
 symbols = ["ESZ24", "NQZ24", "YMZ24", "RTYZ24", "CLZ24"]
-for i in range(50):
+for i in range(100):
     sym = random.choice(symbols)
-    amt = random.randint(1, 50)
-    price = round(random.uniform(150, 250), 2)
+    amt = random.randint(-50, 50)
+    if amt == 0:
+        continue
+    price = round(random.uniform(50, 1000), 2)
     myPortfolio.place_order(symbol=sym, amount=amt, limit_price=price)
+    myPortfolio.clear_orders()
+    myPortfolio.update_all_positions()
 
-myPortfolio.clear_orders()
 myPortfolio.check_position_validity()
-
-# myPortfolio.print_positions()
-
+print("positions: ")
 print(myPortfolio.get_positions_df())
-# myPortfolio.check_position_validity()
-
-myPortfolio.place_order(symbol="NQZ24", amount=-10, limit_price=150)
+print(f"cash balance: {myPortfolio.get_cash_balance()}")
+print(f"available margin: {myPortfolio.get_available_cash()}")

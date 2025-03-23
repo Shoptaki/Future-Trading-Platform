@@ -6,7 +6,9 @@ import numpy as np
 
 
 class Portfolio:
-    """class representing a trading portfolio that manages cash, margins, and open orders.
+    """Portfolio class for managing a client's portfolio of future contracts.
+    This class controls how much money is available for trading, how much money is reserved for margin requirements,
+    and how much money is tied up in open orders. It also keeps track of the portfolio's positions and their values.
 
     Attributes:
         cash_balance (float): Available cash in the portfolio.
@@ -15,8 +17,10 @@ class Portfolio:
         open_orders (list): List of currently open orders.
         pending_balance (float): Total pending balance for open orders.
         portfolio_value (float): Total value of the portfolio, including cash and positions.
-        futures (dict): Dictionary tracking open futures positions {symbol: amount}.
+        available_cash (float): Cash available for trading.
+        order_history (list): List of all executed orders.
         positions (pd.DataFrame): DataFrame storing current portfolio positions.
+
 
     Methods:
         place_order(symbol, amount, limit_price=None):
@@ -49,6 +53,7 @@ class Portfolio:
         self.pending_balance = 0
         self.portfolio_value = cash_balance
         self.order_history = []
+        self.available_cash = cash_balance
 
         self.positions = pd.DataFrame(
             {
@@ -80,11 +85,16 @@ class Portfolio:
         else:
             order_cost = limit_price * amount
 
+        if amount == 0:
+
+            raise Exception("Invalid Order Amount")
+
         # Buy Orders
-        if amount > 0:
+        elif amount > 0:
 
             # Checks if client has enough cash/margin to purchase
-            if order_cost * self.margins["Futures"] > self.cash_balance:
+
+            if order_cost * self.margins["Futures"] > self.available_cash:
                 raise Exception("Insuffiecient Funds")
 
             # Placing order and updating values
@@ -101,7 +111,7 @@ class Portfolio:
 
             if (
                 abs(final_amount * get_current_price(symbol) * self.margins["Futures"])
-                > self.cash_balance
+                > self.available_cash
             ):
                 raise Exception("Insuffiecient Funds")
 
@@ -109,24 +119,23 @@ class Portfolio:
             self.open_orders.append(order)
             self.update_pending_balance()
 
-    def get_portfolio_value(self):
-        # TODO
-        pass
-
-    def calculate_risk(self):
-        # TODO
-        pass
-
     def update_pending_balance(self):
+        """Updates the pending balance of the portfolio."""
+
         self.pending_balance = sum(
             [
-                order.get_order_cost() * self.margins["Futures"]
+                order.get_limit_order_cost() * self.margins["Futures"]
                 for order in self.open_orders
             ]
         )  # Sums the costs * margin of open orders
 
     def add_order_to_postions(self, order: Order):
         """Given a cleared order to update self.positions dataframe.
+        It either updates an existing position or adds a new position to the portfolio.
+        If a position size is reduced, the average cost is not updated and
+        the cash balance is updated by the profit/loss of the position.
+
+        This is the only time cash balance is updated besides deposits/withdrawls.
 
         Args:
             order (Order): Cleared order to update positions.
@@ -143,24 +152,52 @@ class Portfolio:
                 cur_position.copy()
             )  # new position to be updated in self.positions dataframe
 
-            newAvgCost = (
-                cur_position["AvgCost"] * cur_position["Amount"]
-                + order.get_order_cost()
-            ) / (cur_position["Amount"] + order.get_amount())
-            # Calculates the new average cost of the position
+            # Checks if a position size is being increaced/reduced.
+            if (
+                order.get_amount() * cur_position["Amount"].iloc[0] < 0
+            ):  # Position size is reduced
+
+                # Currently when reducing position size, the average cost is not updated.
+                # This is a simplification and can be updated in the future.
+                newAvgCost = cur_position["AvgCost"]
+
+                # Profit/Loss calculation
+                # Changes cash balance by the profit/loss of the position
+                # This is the only time cash_balance is updated besides deposits/withdrawls
+                pnl = cur_position["Amount"].iloc[0] * (
+                    cur_position["CurrentPrice"].iloc[0]
+                    - cur_position["AvgCost"].iloc[0]
+                )
+
+                self.cash_balance += float(pnl)
+
+            else:  # Position size is increased
+
+                newAvgCost = (
+                    cur_position["AvgCost"] * cur_position["Amount"]
+                    + order.get_price_at_trade() * order.get_amount()
+                ) / (cur_position["Amount"] + order.get_amount())
+                # Calculates the new average cost of the position
 
             new_position["Amount"] = cur_position["Amount"] + order.get_amount()
+
+            if new_position["Amount"].iloc[0] == 0:
+                # If position size is reduced to 0, the position is removed from the portfolio
+                self.positions = self.positions[
+                    self.positions["Symbol"] != order.get_symbol()
+                ]
+
             new_position["AvgCost"] = newAvgCost
             new_position["TotalCost"] = newAvgCost * (
                 cur_position["Amount"] + order.get_amount()
             )
 
-            new_position["CurrentPrice"] = get_current_price(order.get_symbol())
+            new_position["CurrentPrice"] = order.get_price_at_trade()
             new_position["TotalValue"] = (
                 new_position["Amount"] * new_position["CurrentPrice"]
             )
 
-            new_position["ValueOnMargin"] = (
+            new_position["ValueOnMargin"] = abs(
                 cur_position["Amount"]
                 * cur_position["CurrentPrice"]
                 * self.margins["Futures"]
@@ -168,20 +205,34 @@ class Portfolio:
             # Calculates value of the position on margin
 
             new_position["P/L"] = new_position["TotalCost"] - new_position["TotalValue"]
+            self.positions[self.positions["Symbol"] == order.get_symbol()] = (
+                new_position
+            )
 
         else:
 
+            # If position is not in portfolio, a new row is added to the positions dataframe
             new_row = pd.DataFrame(
                 {
                     "Symbol": [order.get_symbol()],
                     "Amount": [float(order.get_amount())],
-                    "AvgCost": [float(order.get_order_cost() / order.get_amount())],
-                    "TotalCost": [float(order.get_order_cost())],
-                    "CurrentPrice": [float(get_current_price(order.get_symbol()))],
-                    "ValueOnMargin": [
-                        float(order.get_order_cost() * self.margins["Futures"])
+                    "AvgCost": [float(order.get_price_at_trade())],
+                    "TotalCost": [
+                        float(order.get_price_at_trade() * order.get_amount())
                     ],
-                    "TotalValue": [float(order.get_order_cost())],
+                    "CurrentPrice": [float(order.get_price_at_trade())],
+                    "ValueOnMargin": [
+                        abs(
+                            float(
+                                order.get_price_at_trade()
+                                * order.get_amount()
+                                * self.margins["Futures"]
+                            )
+                        )
+                    ],
+                    "TotalValue": [
+                        float(order.get_price_at_trade() * order.get_amount())
+                    ],
                     "P/L": [float(0)],
                 }
             )
@@ -193,29 +244,32 @@ class Portfolio:
         the current value of the position, the value of the position on margin, and the
         profit/loss of the position.
         """
-        self.positions = self.positions.reset_index()
+
+        self.positions = self.positions.reset_index().drop("index", axis=1)
         for ind, position in self.positions.iterrows():
+            # Iterates through all positions in the portfolio and updates the values one by one
+
             current_price = get_current_price(position["Symbol"])
 
             total_value = position["Amount"] * current_price
             value_on_margin = total_value * self.margins["Futures"]
 
             pnl = total_value - position["TotalCost"]
-            print(position["Symbol"], total_value)
 
-            print(self.positions.loc[ind])
-            # print(position["Symbol"], total_value, position["TotalCost"], pnl)
             self.positions.at[ind, "CurrentPrice"] = current_price
             self.positions.at[ind, "TotalValue"] = total_value
-            self.positions.at[ind, "ValueOnMargin"] = value_on_margin
+            self.positions.at[ind, "ValueOnMargin"] = abs(value_on_margin)
             self.positions.at[ind, "P/L"] = pnl
 
-            print("New Values")
-            print(self.positions.loc[ind])
-            print("\n")
+        self.update_pending_balance()
+        self.update_avaliable_cash()
+        self.update_portfolio_value()
 
     def clear_orders(self):
-        """Checks if orders are filled and removes them."""
+        """Checks if orders are filled and removes them.
+        If an order is filled, it is added to the order history and the position is updated by self.add_order_to_positions() fcn.
+        If an order is cancelled, it is removed from the open orders."""
+
         for order in self.open_orders:
             if order.get_status() == 0:
                 # Open order
@@ -225,7 +279,6 @@ class Portfolio:
                 self.order_history.append(order)
                 self.add_order_to_postions(order)
                 self.open_orders.remove(order)
-                self.cash_balance -= order.get_order_cost()
 
             elif order.get_status() == 2:
                 # Cancelled order
@@ -233,18 +286,35 @@ class Portfolio:
             else:
                 raise Exception("Invalid Order Status")
 
+    def update_portfolio_value(self):
+        """Updates value of the portfolio."""
+        self.portfolio_value = (
+            self.available_cash
+            + sum(self.positions["ValueOnMargin"])
+            + sum(self.positions["P/L"])
+        )
+
+    def update_avaliable_cash(self):
+        """Updates availalbe cash which can be used for trading."""
+        self.available_cash = (
+            self.cash_balance
+            - self.pending_balance
+            - sum(self.positions["ValueOnMargin"])
+            + sum(self.positions["P/L"])
+        )
+
     def deposit_cash(self, amount):
         """Allows for depositing cash into account."""
         self.cash_balance += amount
         self.update_all_positions()
 
     def withdraw_cash(self, amount):
-        if self.cash_balance >= amount:
+        """Checks if there is enough available cash to withdraw and then withdraws the cash."""
+        if self.available_cash >= amount:
             self.cash_balance -= amount
+            self.update_avaliable_cash()
         else:
-            raise Exception(f"Not enough cash to withdraw {amount}")
-
-        self.update_all_positions()
+            raise Exception(f"Not enough available cash to withdraw {amount}")
 
     def set_margins(self, asset, margin):
         self.margins[asset] = margin
@@ -267,6 +337,12 @@ class Portfolio:
     def get_positions_df(self):
         self.update_all_positions()
         return self.positions
+
+    def get_available_cash(self):
+        return self.available_cash
+
+    def get_portfolio_value(self):
+        return self.portfolio_value
 
     def check_position_validity(self):
         """First updates the positions then checks if the positions in the portfolio are valid.
@@ -302,44 +378,6 @@ class Portfolio:
                 )
         print("All Position Values Match")
 
-    def print_positions(self):
-        """Prints the current positions in the portfolio in a table format."""
-        self.update_all_positions()
-
-        headers = self.positions.columns
-
-        # Convert and round values, then store rows
-        rows = []
-        for _, pos in self.positions.iterrows():
-            row = [
-                str(pos["Symbol"]),
-                f"{round(pos['Amount'], 2):.2f}",
-                f"{round(pos['AvgCost'], 2):.2f}",
-                f"{round(pos['TotalCost'], 2):.2f}",
-                f"{round(pos['CurrentPrice'], 2):.2f}",
-                f"{round(pos['TotalValue'], 2):.2f}",
-                f"{round(pos['ValueOnMargin'], 2):.2f}",
-                f"{round(pos['P/L'], 2):.2f}",
-            ]
-            rows.append(row)
-
-        # Determine column widths
-        col_widths = [
-            max(len(str(item)) for item in [header] + [row[i] for row in rows])
-            for i, header in enumerate(headers)
-        ]
-
-        # Format header
-        header_str = " | ".join(
-            header.ljust(col_widths[i]) for i, header in enumerate(headers)
-        )
-        divider = "-+-".join("-" * col_widths[i] for i in range(len(headers)))
-        print(header_str)
-        print(divider)
-
-        # Print each row
-        for row in rows:
-            row_str = " | ".join(
-                row[i].ljust(col_widths[i]) for i in range(len(headers))
-            )
-            print(row_str)
+        def calculate_risk(self):
+            # TODO
+            pass

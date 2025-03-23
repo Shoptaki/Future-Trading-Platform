@@ -30,35 +30,40 @@ class Order:
         # For buying/long orders
         else:
             if self.amount > 0:
-                if get_current_price(self.symbol) <= self.limit_price:
+
+                cur_price = get_current_price(self.symbol)
+                if cur_price <= self.limit_price:
                     self.status = 1
-                    self.price_at_trade = get_current_price(self.symbol)
+                    self.set_price_at_trade(cur_price)
                     # TODO Place order in database and actually place order
 
                 # For selling/short orders
-                else:
-                    if get_current_price(self.symbol) <= self.limit_price:
-                        self.status = 1
-                        self.price_at_trade = get_current_price(self.symbol)
-                        # TODO Place order in database and actually place order
+            else:
+                cur_price = get_current_price(self.symbol)
+                if cur_price >= self.limit_price:
+                    self.status = 1
+                    self.set_price_at_trade(cur_price)
+                    # TODO Place order in database and actually place order
 
     def get_status(self):
         return self.status
 
-    def get_order_cost(self):
+    def get_limit_order_cost(self):
         """Cost of order (amount * price).
 
         Returns:
             cost (float)
         """
-        if self.limit_price is not None:
-            return self.amount * self.limit_price
-        else:
-            # TODO: Value for market order
-            return None
+        return self.amount * self.limit_price
 
     def get_symbol(self):
         return self.symbol
+
+    def set_price_at_trade(self, price):
+        self.price_at_trade = price
+
+    def get_price_at_trade(self):
+        return self.price_at_trade
 
     def get_price_at_trade(self):
         return self.price_at_trade
@@ -70,10 +75,15 @@ class Order:
 
         if self.status == 0:
             status_str = "Open"
+            order_cost = self.get_limit_order_cost()
+            price = self.limit_price
         elif self.status == 1:
             status_str = "Filled"
+            order_cost = self.price_at_trade * self.amount
+            price = self.price_at_trade
         else:
             status_str = "Cancelled"
+            order_cost = self.get_limit_order_cost()
 
-        output = f"Symbol: {self.symbol} | Amount: {self.amount} | Price: {self.limit_price} | Order Cost: {self.get_order_cost()} | Status: {status_str}"
+        output = f"Symbol: {self.symbol} | Amount: {self.amount} | Price: {price} | Order Cost: {round(order_cost,2)} | Status: {status_str}"
         return output
