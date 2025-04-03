@@ -1,13 +1,25 @@
 import backtrader as bt
+import pandas as pd
 
 
 class SmaCross(bt.Strategy):
-    def log(self, txt, dt=None):
-        """Logging function fot this strategy"""
+    trade_history_columns = [
+        "timestamp",  # When the trade was executed
+        "side",  # 'buy' or 'sell'
+        "quantity",  # Amount of asset traded
+        "price",  # Executed price
+        "pnl",  # Profit or loss for the trade (if applicable)
+    ]
+
+    def log(self, txt, trade=False, dt=None):
+        """Logging function for this strategy"""
         dt = dt or self.datas[0].datetime.date(0)
-        print("%s, %s" % (dt.isoformat(), txt))
+        timestamp = "%s, %s" % (dt.isoformat(), txt)
+        # print(self.order)
 
     def __init__(self):
+
+        self.trade_hist = pd.DataFrame(columns=SmaCross.trade_history_columns)
 
         print(len(self))
         print(len(self.datas))
@@ -34,13 +46,10 @@ class SmaCross(bt.Strategy):
     def next(self):
         # self.log("Close, %.2f" % self.dataclose[0])
 
-        if len(self) == len(self.data) - 1 and self.position:
-            print("Closing on the last bar")
-            self.close()
-
         if not self.position:  # not in the market
+
+            # Positive sma cross from time before
             if self.sma1[0] > self.sma2[0] and self.sma1[-1] < self.sma2[-1]:
-                self.log("LONG ORDER CREATE, %.2f" % self.dataclose[0])
 
                 self.order = self.buy(size=10)
                 self.long_tp_price = self.dataclose[0] * (1 + self.long_tp)
@@ -48,6 +57,8 @@ class SmaCross(bt.Strategy):
                 self.long_max = self.dataclose[0]
 
                 self.notify_order(self.order)
+
+                self.log("LONG ORDER CREATE, %.2f" % self.dataclose[0], trade=True)
 
             elif self.sma1[0] < self.sma2[0] and self.sma1[-1] > self.sma2[-1]:
                 self.log("SHORT ORDER CREATE, %.2f" % self.dataclose[0])
@@ -91,6 +102,7 @@ class SmaCross(bt.Strategy):
             self.close()"""
 
     def notify_order(self, order):
+        print(order)
         if order.status in [order.Submitted, order.Accepted]:
             return
         if order.status == order.Completed:
