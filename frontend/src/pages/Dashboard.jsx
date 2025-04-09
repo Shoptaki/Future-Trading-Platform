@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "./Dashboard.css"; // Ensure this file is correctly linked
+import "./Dashboard.css";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -29,38 +29,30 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+    navigate("/login");
   };
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>Welcome, {user ? user.first_name : "User"}!</h1>
-        <p>Your Trading Dashboard</p>
-      </div>
-
-      <div className="profile-section">
-        {user ? (
-          <>
-            <p><strong>Name:</strong> {user.first_name} {user.last_name}</p>
-            <p><strong>Email:</strong> {user.email}</p>
-          </>
-        ) : (
-          <p>Loading profile...</p>
-        )}
-      </div>
-
-      <div className="button-group">
-        <button className="dashboard-button edit-profile" onClick={() => navigate("/edit-profile")}>
-          Edit Profile
+    <div className="dashboard-layout">
+      <nav className="tab-menu">
+        <button onClick={() => navigate("/dashboard")}>Dashboard</button>
+        <button onClick={() => navigate("/edit-profile")}>Edit Profile</button>
+        <button onClick={() => navigate("/brokerage-accounts")}>
+          Manage Accounts
         </button>
-        <button className="dashboard-button manage-accounts" onClick={() => navigate("/brokerage-accounts")}>
-          Manage Brokerage Accounts
-        </button>
-        <button className="dashboard-button logout" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
+        <button onClick={() => navigate("/backtest")}>Backtest</button>
+        <button onClick={() => navigate("/trade")}>Trade</button>
+        <button onClick={handleLogout}>Logout</button>
+      </nav>
+      <main className="dashboard-content">
+        <header>
+          <h1>Welcome, {user ? user.first_name : "User"}!</h1>
+          <p>Your Trading Dashboard</p>
+        </header>
+        <section className="dashboard-details">
+          <p>Here you can manage your trading activities, backtest strategies, and more.</p>
+        </section>
+      </main>
     </div>
   );
 }

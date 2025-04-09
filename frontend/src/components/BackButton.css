@@ -1,0 +1,24 @@
+.back-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 24px; /* Increased padding for a better look */
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s;
+  margin-top: 20px; /* Add spacing above the button */
+  display: inline-block; /* Ensure it doesn't stretch unnecessarily */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
+}
+
+.back-button:hover {
+  background-color: #388e3c;
+  transform: scale(1.05); /* Slight zoom effect on hover */
+}
+
+.back-button-container {
+  display: flex;
+  justify-content: center; /* Center the button horizontally */
+  margin-top: 30px; /* Add spacing above the container */
+}

@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 from cryptography.fernet import Fernet
 
 # ✅ MySQL Connection String
-DATABASE_URL = "mysql+mysqlconnector://root:Root%401006@127.0.0.1/trading_platform"
+DATABASE_URL = "mysql+mysqlconnector://swanand:swanand12@127.0.0.1/trading_platform"
 
 # ✅ Create engine and session
 engine = create_engine(DATABASE_URL, echo=True)

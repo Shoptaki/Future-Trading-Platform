@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import BackButton from "../components/BackButton";
 import "./styles.css";
 
 export default function EditProfile() {
@@ -8,7 +9,7 @@ export default function EditProfile() {
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
-    email: ""
+    email: "",
   });
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
@@ -20,7 +21,7 @@ export default function EditProfile() {
     }
     axios
       .get("http://127.0.0.1:8000/profile", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
         setProfile(response.data);
@@ -40,7 +41,7 @@ export default function EditProfile() {
     e.preventDefault();
     try {
       await axios.put("http://127.0.0.1:8000/profile", profile, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       alert("Profile updated successfully!");
       navigate("/dashboard");
@@ -80,14 +81,13 @@ export default function EditProfile() {
           onChange={handleChange}
           required
         />
-        
-        <div className="button-container">
-          <button type="submit" className="save-button">Save Changes</button>
-          <button className="back-button" onClick={() => navigate("/dashboard")}>
-            Back to Dashboard
-          </button>
-        </div>
+        <button type="submit" className="save-button">
+          Save Changes
+        </button>
       </form>
+      <div className="back-button-container">
+        <BackButton />
+      </div>
     </div>
   );
-}  
+}

@@ -2,7 +2,7 @@
 body {
   font-family: 'Poppins', sans-serif;
   background: #0d1117;
-  color: #fff;
+  color: #e0e0e0; /* Softer white for better readability */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -27,7 +27,7 @@ h1 {
   font-size: 26px;
   font-weight: 600;
   margin-bottom: 20px;
-  color: #00c896;
+  color: #00e6a8; /* Brighter green for better contrast */
 }
 
 /* Input Fields */
@@ -39,20 +39,20 @@ input {
   border-radius: 8px;
   font-size: 16px;
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: #e0e0e0; /* Softer white for input text */
   outline: none;
   transition: 0.3s;
 }
 
 /* Input Focus */
 input:focus {
-  border: 1px solid #00c896;
+  border: 1px solid #00e6a8;
   background: rgba(255, 255, 255, 0.2);
 }
 
 /* Input Placeholder */
 input::placeholder {
-  color: #bbb;
+  color: #a0a0a0; /* Softer gray for placeholder text */
 }
 
 /* Button */
@@ -61,7 +61,7 @@ button {
   padding: 14px;
   font-size: 16px;
   font-weight: bold;
-  background: linear-gradient(135deg, #00c896, #00856f);
+  background: linear-gradient(135deg, #00e6a8, #00856f);
   color: white;
   border: none;
   border-radius: 8px;
@@ -88,7 +88,7 @@ button:hover {
 .footer {
   margin-top: 20px;
   font-size: 12px;
-  color: #bbb;
+  color: #a0a0a0; /* Softer gray for footer text */
 }
 
 .button-container {
@@ -122,5 +122,41 @@ button:hover {
 
 .back-button:hover {
   background-color: #545b62;
+}
+
+/* Password Container */
+.password-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-container input {
+  width: 100%;
+  padding-right: 40px; /* Space for the icon */
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #a0a0a0; /* Softer gray for the icon */
+  transition: color 0.3s ease;
+}
+
+.password-toggle-icon:hover {
+  color: #00e6a8; /* Brighter green on hover */
+}
+
+/* Link Styling */
+a {
+  color: #00e6a8; /* Brighter green for links */
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #00c896; /* Slightly darker green on hover */
 }
 
