@@ -2,3 +2,5 @@ backend\asset_logic\__pycache__
 backend\backtesting\data
 backend\backtesting\profit_1mo.csv
 backend\backtesting\profit_2yo.csv
+backend\venv
+**/__pycache__
